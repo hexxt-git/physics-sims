@@ -1,0 +1,11 @@
+{
+    "typeCheckingMode": "strict",
+    "include": ["src"],
+    "reportMissingTypeStubs": "error",
+    "reportUnknownMemberType": "error",
+    "reportUnknownArgumentType": "error",
+    "reportUnknownVariableType": "error",
+    "reportUnknownParameterType": "error",
+    "reportWildcardImportFromLibrary": "warning"
+  }
+  
