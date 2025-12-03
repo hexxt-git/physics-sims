@@ -1,6 +1,6 @@
-from random import random, randint
+from random import random
 from pyray import *  # pyright: ignore[reportWildcardImportFromLibrary]
-from raylib import SetTargetFPS # pyright: ignore[reportWildcardImportFromLibrary]
+from raylib import MOUSE_BUTTON_LEFT, SetTargetFPS # pyright: ignore[reportWildcardImportFromLibrary]
 from models import Ball, Line
 import math
 
@@ -12,26 +12,17 @@ SetTargetFPS(60)
 
 REFLECTION_COEFFICIENT = 0.7
 FRICTION_COEFFICIENT = 0.99
-STEPS = 10
+STEPS = 30
 
 balls = [
-    Ball(x=100, y=100, radius=25, color=RED),
+    Ball(x=105, y=100, radius=25, color=RED),
     Ball(x=200, y=200, radius=25, color=BLUE),
     Ball(x=500, y=100, radius=25, color=PURPLE),
 ]
-for i in range(100):
-    balls.append(
-        Ball(
-            x=random() * (WIDTH - 40) + 20,
-            y=random() * 100 + 40,
-            radius=randint(10, 30),
-            color=GREEN,
-        )
-    )
 
 lines = [
     Line(x1=150, y1=400, x2=600, y2=250),
-    Line(x1=100, y1=200, x2=300, y2=500),
+    Line(x2=100, y2=200, x1=300, y1=500),
 
     # TOP
     Line(x1=WIDTH, y1=0, x2=0, y2=0),
@@ -48,11 +39,11 @@ lines = [
 ]
 
 def render_and_clear():
-    clear_background(WHITE)
+    clear_background(BLACK)
     for ball in balls:
         draw_circle(int(ball.x), int(ball.y), ball.radius, ball.color)
     for line in lines:
-        draw_line_ex(Vector2(line.x1, line.y1), Vector2(line.x2, line.y2), 3, BLACK)
+        draw_line_ex(Vector2(line.x1, line.y1), Vector2(line.x2, line.y2), 3, WHITE)
 
 def update():
     for ball in balls:
@@ -61,20 +52,6 @@ def update():
         ball.vy += 0.2 / STEPS
 
         for line in lines:
-            # the direction vector of a line is (-dy, dx)
-            directionX = -(line.y2 - line.y1)
-            directionY = line.x2 - line.x1
-
-            # normalizing the direction vector
-            magnitude = math.sqrt(directionX ** 2 + directionY ** 2)
-            normalX = directionX / magnitude
-            normalY = directionY / magnitude
-
-            X = ball.x - (line.x1 + line.x2) /2
-            Y = ball.y - (line.y1 + line.y2) /2
-
-            distance = abs(X * normalX + Y * normalY)
-
             # check that the ball's bounding box overlaps with the line's bounding box
             ball_left = ball.x - ball.radius
             ball_right = ball.x + ball.radius
@@ -90,32 +67,51 @@ def update():
                 ball_bottom < line_top or ball_top > line_bottom):
                 continue
 
+            # the direction vector of a line is (-dy, dx) or (dy, -dx) and it depends on which side the ball is on
+            directionX = -(line.y2 - line.y1)
+            directionY = line.x2 - line.x1
+
+            # normalizing the direction vector
+            magnitude = math.sqrt(directionX ** 2 + directionY ** 2)
+            normalX = directionX / magnitude
+            normalY = directionY / magnitude
+
+            # vector from line center to ball
+            X = ball.x - (line.x1 + line.x2) /2
+            Y = ball.y - (line.y1 + line.y2) /2
+
+            # signed distance from the line to the ball
+            signed_distance = X * normalX + Y * normalY
+
+            if signed_distance > 0:
+                normalX = -normalX
+                normalY = -normalY
+
+            distance = abs(signed_distance)
 
             if distance < ball.radius:
                 # handling corners
                 distance_to_c1 = math.sqrt((ball.x - line.x1) ** 2 + (ball.y - line.y1) ** 2)
                 distance_to_c2 = math.sqrt((ball.x - line.x2) ** 2 + (ball.y - line.y2) ** 2)
-                if distance_to_c1 < ball.radius and False:
-                    pass
-                    # # new normal vector is facing the ball and no sliding full bounce since speed_along_tanget would be 0
-                    # normalX = (line.x1 - ball.x) / distance_to_c1
-                    # normalY = (line.y1 - ball.y) / distance_to_c1
+                if distance_to_c1 < ball.radius:
+                    # new normal vector is facing the ball and no sliding full bounce since speed_along_tanget would be 0
+                    normalX = (line.x1 - ball.x) / distance_to_c1
+                    normalY = (line.y1 - ball.y) / distance_to_c1
 
-                    # # full bounce reflection for corner collision
-                    # speed_along_normal = ball.vx * normalX + ball.vy * normalY
-                    # if speed_along_normal > 0:
-                    #     ball.vx = -speed_along_normal * normalX * REFLECTION_COEFFICIENT
-                    #     ball.vy = -speed_along_normal * normalY * REFLECTION_COEFFICIENT
+                    # full bounce reflection for corner collision
+                    speed_along_normal = ball.vx * normalX + ball.vy * normalY
+                    if speed_along_normal > 0:
+                        ball.vx = -speed_along_normal * normalX * REFLECTION_COEFFICIENT
+                        ball.vy = -speed_along_normal * normalY * REFLECTION_COEFFICIENT
 
-                elif distance_to_c2 < ball.radius and False:
-                    pass
-                    # normalX = (line.x2 - ball.x) / distance_to_c2
-                    # normalY = (line.y2 - ball.y) / distance_to_c2
+                elif distance_to_c2 < ball.radius:
+                    normalX = (line.x2 - ball.x) / distance_to_c2
+                    normalY = (line.y2 - ball.y) / distance_to_c2
 
-                    # speed_along_normal = ball.vx * normalX + ball.vy * normalY
-                    # if speed_along_normal > 0:
-                    #     ball.vx = -speed_along_normal * normalX * REFLECTION_COEFFICIENT
-                    #     ball.vy = -speed_along_normal * normalY * REFLECTION_COEFFICIENT
+                    speed_along_normal = ball.vx * normalX + ball.vy * normalY
+                    if speed_along_normal > 0:
+                        ball.vx = -speed_along_normal * normalX * REFLECTION_COEFFICIENT
+                        ball.vy = -speed_along_normal * normalY * REFLECTION_COEFFICIENT
 
                 else:
                     # handling mid line collision
@@ -125,6 +121,10 @@ def update():
                         # Reflect: reverse normal component, keep tangent component
                         ball.vx = -speed_along_normal * normalX * REFLECTION_COEFFICIENT + speed_along_tangent * normalY * FRICTION_COEFFICIENT
                         ball.vy = -speed_along_normal * normalY * REFLECTION_COEFFICIENT - speed_along_tangent * normalX * FRICTION_COEFFICIENT
+
+                        overlap = ball.radius - distance
+                        ball.x -= overlap * normalX / 2
+                        ball.y -= overlap * normalY / 2
 
         for other_ball in balls:
             if other_ball == ball:
@@ -167,6 +167,9 @@ while not window_should_close():
     for _ in range(STEPS):
         update()
     render_and_clear()
+
+    if is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+        balls.append(Ball(x=get_mouse_x(), y=get_mouse_y(), radius=25, color=WHITE, vx=random() * 30 - 15, vy=-10))
 
     draw_fps(10, 10)
 
