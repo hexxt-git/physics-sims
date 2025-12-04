@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-
+from dataclasses import dataclass, field
+import random
 from pyray import Color
 
 @dataclass
@@ -17,3 +17,11 @@ class Ball:
     color: Color
     vx: float = 0
     vy: float = 0
+    id: int = field(default_factory=lambda: random.randint(0, 1000000))
+
+@dataclass
+class Connection:
+    ball1_id: int
+    ball2_id: int
+    length: float
+    force: float = 0.01
