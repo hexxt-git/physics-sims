@@ -16,7 +16,7 @@ class Ball:
     radius: float
     color: Color
     vx: float = 0
-    vy: float = 0
+    vy: float = -4
     id: int = field(default_factory=lambda: random.randint(0, 1000000))
 
 @dataclass
@@ -24,4 +24,4 @@ class Connection:
     ball1_id: int
     ball2_id: int
     length: float
-    force: float = 0.01
+    force: float = 0.5

@@ -39,27 +39,51 @@ walls = [
 
 lines.extend(walls)
 
-TOWER_WIDTH = 3
-TOWER_HEIGHT = 6
+TOWER_WIDTH = 6
+TOWER_HEIGHT = 5
+TOWER_START_X = 100
+TOWER_START_Y = 100
+TOWER_SPACING = 40
 
 # creating a tower of balls
 layers: list[list[Ball]] = []
 for layer in range(TOWER_HEIGHT):
     layerBalls: list[Ball] = []
     for collumn in range(TOWER_WIDTH):
-        ball = Ball(x=100+collumn*50, y=300+layer*50+collumn*10, radius=7, color=WHITE)
+        ball = Ball(x=TOWER_START_X+collumn*TOWER_SPACING, y=TOWER_START_Y+layer*TOWER_SPACING+collumn*10, radius=7, color=WHITE)
         if collumn > 0:
             prev_ball = layerBalls[collumn - 1]
-            connections.append(Connection(ball.id, prev_ball.id, 50))
+            connections.append(Connection(ball.id, prev_ball.id, TOWER_SPACING, force=1))
         if layer > 0:
             prev_layer_ball = layers[layer-1][collumn]
-            connections.append(Connection(ball.id, prev_layer_ball.id, 50))
+            connections.append(Connection(ball.id, prev_layer_ball.id, TOWER_SPACING, force=1))
             if collumn > 0:
                 prev_layer_prev_ball = layers[layer-1][collumn-1]
-                connections.append(Connection(ball.id, prev_layer_prev_ball.id, 50 * math.sqrt(2)))
+                connections.append(Connection(ball.id, prev_layer_prev_ball.id, TOWER_SPACING * math.sqrt(2), force=1))
             if collumn < TOWER_WIDTH - 1:
                 next_layer_ball = layers[layer-1][collumn+1]
-                connections.append(Connection(ball.id, next_layer_ball.id, 50 * math.sqrt(2)))
+                connections.append(Connection(ball.id, next_layer_ball.id, TOWER_SPACING * math.sqrt(2), force=1))
+        layerBalls.append(ball)
+    layers.append(layerBalls)
+    balls.extend(layerBalls)
+
+layers = []
+for layer in range(TOWER_HEIGHT):
+    layerBalls = []
+    for collumn in range(TOWER_WIDTH):
+        ball = Ball(x=TOWER_START_X+300+collumn*TOWER_SPACING, y=TOWER_START_Y+layer*TOWER_SPACING+collumn*10, radius=7, color=WHITE)
+        if collumn > 0:
+            prev_ball = layerBalls[collumn - 1]
+            connections.append(Connection(ball.id, prev_ball.id, TOWER_SPACING, force=0.1))
+        if layer > 0:
+            prev_layer_ball = layers[layer-1][collumn]
+            connections.append(Connection(ball.id, prev_layer_ball.id, TOWER_SPACING, force=0.1))
+            if collumn > 0:
+                prev_layer_prev_ball = layers[layer-1][collumn-1]
+                connections.append(Connection(ball.id, prev_layer_prev_ball.id, TOWER_SPACING * math.sqrt(2), force=0.1))
+            if collumn < TOWER_WIDTH - 1:
+                next_layer_ball = layers[layer-1][collumn+1]
+                connections.append(Connection(ball.id, next_layer_ball.id, TOWER_SPACING * math.sqrt(2), force=0.1))
         layerBalls.append(ball)
     layers.append(layerBalls)
     balls.extend(layerBalls)
@@ -81,9 +105,12 @@ def render_and_clear():
 
 def update():
     for ball in balls:
+        ball.vx = max(min(ball.vx, 10), -10)
+        ball.vy = max(min(ball.vy, 10), -10)
+
         ball.x += ball.vx / STEPS
         ball.y += ball.vy / STEPS
-        ball.vy += 0.3 / STEPS
+        ball.vy += 0.25 / STEPS
 
         for line in lines:
             # check that the ball's bounding box overlaps with the line's bounding box
@@ -165,64 +192,59 @@ def update():
                 continue
             distance = math.sqrt((ball.x - other_ball.x) ** 2 + (ball.y - other_ball.y) ** 2)
             
-            if distance < ball.radius + other_ball.radius:
-                normalX = (other_ball.x - ball.x) / distance
-                normalY = (other_ball.y - ball.y) / distance
+            if not (distance < ball.radius + other_ball.radius):
+                continue
 
-                mass1 = calc_mass(ball.radius)
-                mass2 = calc_mass(other_ball.radius)
-                massTotal = mass1 + mass2
-                
-                
-                relative_velocity_x = ball.vx - other_ball.vx
-                relative_velocity_y = ball.vy - other_ball.vy
-                
-                speed_along_normal = relative_velocity_x * normalX + relative_velocity_y * normalY
+            normalX = (other_ball.x - ball.x) / distance
+            normalY = (other_ball.y - ball.y) / distance
 
-                if speed_along_normal > 0:
-                    # bounce force
-                    force_x = speed_along_normal * normalX * REFLECTION_COEFFICIENT
-                    force_y = speed_along_normal * normalY * REFLECTION_COEFFICIENT
-                    
-                    ball.vx -= force_x * mass2 / massTotal
-                    ball.vy -= force_y * mass2 / massTotal
-                    other_ball.vx += force_x * mass1 / massTotal
-                    other_ball.vy += force_y * mass1 / massTotal
-
-                overlap = ball.radius + other_ball.radius - distance
-                ball.x -= overlap * normalX * mass2 / massTotal
-                ball.y -= overlap * normalY * mass2 / massTotal
-                other_ball.x += overlap * normalX * mass1 / massTotal
-                other_ball.y += overlap * normalY * mass1 / massTotal
-
-
-        for connection in connections:
-            ball1 = get_ball_by_id(connection.ball1_id)
-            ball2 = get_ball_by_id(connection.ball2_id)
-
-            deltaX = ball1.x - ball2.x
-            deltaY = ball1.y - ball2.y
-
-            actual_distance = math.sqrt(deltaX ** 2 + deltaY ** 2)
-            error = actual_distance - connection.length
-
-            normalX = deltaX / actual_distance
-            normalY = deltaY / actual_distance
-
-            mass1 = calc_mass(ball1.radius)
-            mass2 = calc_mass(ball2.radius)
+            mass1 = calc_mass(ball.radius)
+            mass2 = calc_mass(other_ball.radius)
             massTotal = mass1 + mass2
+            
+            
+            relative_velocity_x = ball.vx - other_ball.vx
+            relative_velocity_y = ball.vy - other_ball.vy
+            
+            speed_along_normal = relative_velocity_x * normalX + relative_velocity_y * normalY
 
-            ball1.vx -= error * normalX * connection.force * mass2 / massTotal
-            ball1.vy -= error * normalY * connection.force * mass2 / massTotal
-            ball2.vx += error * normalX * connection.force * mass1 / massTotal
-            ball2.vy += error * normalY * connection.force * mass1 / massTotal
+            if speed_along_normal > 0:
+                # bounce force
+                force_x = speed_along_normal * normalX * REFLECTION_COEFFICIENT
+                force_y = speed_along_normal * normalY * REFLECTION_COEFFICIENT
+                
+                ball.vx -= force_x * mass2 / massTotal
+                ball.vy -= force_y * mass2 / massTotal
+                other_ball.vx += force_x * mass1 / massTotal
+                other_ball.vy += force_y * mass1 / massTotal
 
-            ball1.x -= error * normalX / 2 / 10 / STEPS * mass2 / massTotal
-            ball1.y -= error * normalY / 2 / 10 / STEPS * mass2 / massTotal
-            ball2.x += error * normalX / 2 / 10 / STEPS * mass1 / massTotal
-            ball2.y += error * normalY / 2 / 10 / STEPS * mass1 / massTotal
+            overlap = ball.radius + other_ball.radius - distance
+            ball.x -= overlap * normalX * mass2 / massTotal
+            ball.y -= overlap * normalY * mass2 / massTotal
+            other_ball.x += overlap * normalX * mass1 / massTotal
+            other_ball.y += overlap * normalY * mass1 / massTotal
 
+    for connection in connections:
+        ball1 = get_ball_by_id(connection.ball1_id)
+        ball2 = get_ball_by_id(connection.ball2_id)
+
+        deltaX = ball1.x + ball1.vx - ball2.x - ball2.vx
+        deltaY = ball1.y + ball1.vy - ball2.y - ball2.vy
+
+        actual_distance = math.sqrt(deltaX ** 2 + deltaY ** 2)
+        error = actual_distance - connection.length
+
+        normalX = deltaX / actual_distance
+        normalY = deltaY / actual_distance
+
+        mass1 = calc_mass(ball1.radius)
+        mass2 = calc_mass(ball2.radius)
+        massTotal = mass1 + mass2
+
+        ball1.vx -= error * normalX * connection.force * mass2 / massTotal
+        ball1.vy -= error * normalY * connection.force * mass2 / massTotal
+        ball2.vx += error * normalX * connection.force * mass1 / massTotal
+        ball2.vy += error * normalY * connection.force * mass1 / massTotal
 
 
 while not window_should_close():
