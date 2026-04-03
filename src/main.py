@@ -108,9 +108,8 @@ def update():
         ball.vx = max(min(ball.vx, 10), -10)
         ball.vy = max(min(ball.vy, 10), -10)
 
-        ball.x += ball.vx / STEPS
-        ball.y += ball.vy / STEPS
         ball.vy += 0.25 / STEPS
+        
 
         for line in lines:
             # check that the ball's bounding box overlaps with the line's bounding box
@@ -224,6 +223,9 @@ def update():
             other_ball.x += overlap * normalX * mass1 / massTotal
             other_ball.y += overlap * normalY * mass1 / massTotal
 
+        ball.x += ball.vx / STEPS
+        ball.y += ball.vy / STEPS
+        
     for connection in connections:
         ball1 = get_ball_by_id(connection.ball1_id)
         ball2 = get_ball_by_id(connection.ball2_id)
