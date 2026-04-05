@@ -1,11 +1,12 @@
 {
-    "typeCheckingMode": "strict",
-    "include": ["src"],
-    "reportMissingTypeStubs": "error",
-    "reportUnknownMemberType": "error",
-    "reportUnknownArgumentType": "error",
-    "reportUnknownVariableType": "error",
-    "reportUnknownParameterType": "error",
-    "reportWildcardImportFromLibrary": "warning"
-  }
-  
+  "typeCheckingMode": "strict",
+  "venvPath": ".",
+  "venv": ".venv",
+  "include": ["src"],
+  "reportMissingTypeStubs": "error",
+  "reportUnknownMemberType": "error",
+  "reportUnknownArgumentType": "error",
+  "reportUnknownVariableType": "error",
+  "reportUnknownParameterType": "error",
+  "reportWildcardImportFromLibrary": "warning"
+}
